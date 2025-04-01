@@ -44,8 +44,9 @@ def fetch_bitaxe_data():
         "uptimeSeconds": 123456,
         "bestDiff": "568M",  # Beispielwert, z. B. "568M" – Steigt er, soll dies hervorgehoben werden
         "stratumURL": "pool.example.com",
-        "coreVoltageActual": 1200,  # in mV
-        "current": 1500,            # in mA
+        "voltage": 5141.25,  # Korrekte Spannung in mV
+        "current": 1500,      # Stromstärke in mA
+        "power": 350.00       # Stromverbrauch in Watt
     }
 
 # Funktion zum Parsen eines Best Diff-Strings (zum Vergleich)
@@ -102,15 +103,14 @@ def generate_dashboard_embed(data, highlight_best=False):
         uptime_str = str(datetime.timedelta(seconds=uptime_int))
         return f"⌛ {uptime_str}"
     
-    # Hilfsfunktion für Best Difficulty  
+    # Hilfsfunktion für Best Difficulty
     def format_best_diff(best):
         if highlight_best:
-            # Besonders hervorheben, wenn sich der Wert erhöht hat
-            return f"✨🏆 {best}"
+            return f"✨🏆 {best}"  # Hervorhebung bei Anstieg
         else:
             return f"🏆 {best}"
     
-    # Hilfsfunktion für Stratum mit unterschiedlichen Status-Emojis
+    # Hilfsfunktion für Stratum
     def format_stratum(stratum):
         if not stratum or stratum == "N/A":
             return f"🚫 N/A"
@@ -118,50 +118,33 @@ def generate_dashboard_embed(data, highlight_best=False):
             emoji = "🏦" if "pool" in stratum.lower() else "🌐"
             return f"{emoji} {stratum}"
     
-    # Hilfsfunktion für Chip Voltage (in mV -> V)
-    def format_chip_voltage(voltage_actual):
+    # Hilfsfunktion für Stromverbrauch und Spannung kombiniert
+    def format_power_and_voltage(power, voltage_mV):
         try:
-            voltage_val = float(voltage_actual) / 1000.0
+            power_val = float(power)  # Stromverbrauch in Watt
+            voltage_val = float(voltage_mV) / 1000.0  # Spannung von mV in V umrechnen
+            return f"🔌 {power_val:.2f} W @ {voltage_val:.2f} V"
         except Exception:
-            return "🔌 N/A"
-        if voltage_val < 1.20:
-            emoji = "🔻"  # zu niedrig
-        elif voltage_val <= 1.30:
-            emoji = "✅"  # ideal
-        else:
-            emoji = "🔺"  # zu hoch
-        return f"{emoji} {voltage_val:.2f} V"
-    
-    # Hilfsfunktion für den Stromverbrauch (in mA -> A)
-    def format_current(current):
-        try:
-            current_val = float(current) / 1000.0
-        except Exception:
-            return "🔋 N/A"
-        if current_val >= 1.5:
-            emoji = "⚡"  # hoher Verbrauch
-        elif current_val >= 1.0:
-            emoji = "🔋"  # normal
-        else:
-            emoji = "💡"  # niedrig, energieeffizient
-        return f"{emoji} {current_val:.2f} A"
-    
+            return "🔌 Stromverbrauch: N/A"
+
+
     if data:
-        temp                = data.get("temp", "N/A")
-        hr                  = data.get("hashRate", "N/A")
-        uptime_seconds      = data.get("uptimeSeconds", 0)
-        best                = data.get("bestDiff", "N/A")
-        stratum             = data.get("stratumURL", "N/A")
-        chip_voltage_actual = data.get("coreVoltageActual", "N/A")
-        current_val         = data.get("current", "N/A")
+        # Werte aus den Daten abrufen
+        temp = data.get("temp", "N/A")
+        hr = data.get("hashRate", "N/A")
+        uptime_seconds = data.get("uptimeSeconds", 0)
+        best = data.get("bestDiff", "N/A")
+        stratum = data.get("stratumURL", "N/A")
+        power = data.get("power", "N/A")
+        voltage_mV = data.get("voltage", "N/A")  # Spannung in mV abrufen
         
+        # Felder für das Embed hinzufügen
         embed.add_field(name="Temperatur", value=format_temperature(temp), inline=True)
         embed.add_field(name="Hashrate", value=format_hashrate(hr), inline=True)
         embed.add_field(name="Uptime", value=format_uptime(uptime_seconds), inline=True)
         embed.add_field(name="Best Difficulty", value=format_best_diff(best), inline=True)
         embed.add_field(name="Stratum", value=format_stratum(stratum), inline=True)
-        embed.add_field(name="Chip Voltage", value=format_chip_voltage(chip_voltage_actual), inline=True)
-        embed.add_field(name="Stromverbrauch", value=format_current(current_val), inline=True)
+        embed.add_field(name="Stromverbrauch", value=format_power_and_voltage(power, voltage_mV), inline=True)
     else:
         embed.add_field(name="Status", value="🚫 Keine Verbindung zur Bitaxe API.", inline=False)
     
@@ -306,37 +289,20 @@ async def status(ctx):
     shares_rejected = data.get("sharesRejected", 0)
     free_heap = data.get("freeHeap", "N/A")
 
-    # Temperatur-Icon
-    if isinstance(temp, (int, float)):
-        if temp >= 60:
-            temp_icon = "🔴"
-        elif temp >= 55:
-            temp_icon = "🟡"
-        else:
-            temp_icon = "🟢"
-    else:
-        temp_icon = "❓"
-
-    # Hashrate-Farbe
-    if isinstance(hr, (int, float)):
-        if hr >= 400:
-            hr_icon = "🟢"
-        elif hr >= 350:
-            hr_icon = "🟡"
-        else:
-            hr_icon = "🔴"
-    else:
-        hr_icon = "❓"
-
-    msg = f"""🟢 **Bitaxe Status**
-
-🌡️ Temperatur: {temp_icon} {temp}°C
-⚡ Hashrate: {hr_icon} {hr:.2f} MH/s
-⏱️ Uptime: {uptime}
-📈 Shares: ✅ {shares_accepted} / ❌ {shares_rejected}
-💾 Freier Speicher: {free_heap} Bytes
-"""
-    await ctx.send(msg)
+    # Embed erstellen
+    embed = discord.Embed(
+        title="🟢 Status Übersicht",
+        color=0x3498db,
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.add_field(name="🌡️ Temperatur", value=f"{temp}°C", inline=True)
+    embed.add_field(name="⚡ Hashrate", value=f"{hr:.2f} MH/s", inline=True)
+    embed.add_field(name="⏱️ Uptime", value=uptime, inline=True)
+    embed.add_field(name="📈 Shares", value=f"✅ {shares_accepted} / ❌ {shares_rejected}", inline=True)
+    embed.add_field(name="💾 Freier Speicher", value=f"{free_heap} Bytes", inline=False)
+    
+    embed.set_footer(text="Status aktuell.")
+    await ctx.send(embed=embed)
 
 @bot.command(help="Zeigt die aktuelle Hashrate in MH/s")
 async def hashrate(ctx):
@@ -344,9 +310,16 @@ async def hashrate(ctx):
     if not data:
         await ctx.send("❌ Fehler: Keine gültige Antwort von der Bitaxe API.")
         return
+
     hr = data.get("hashRate", 0)
-    color = "🟢" if hr >= 400 else "🔴"
-    await ctx.send(f"{color} Aktuelle Hashrate: {hr:.2f} MH/s")
+    embed = discord.Embed(
+        title="⚡ Aktuelle Hashrate",
+        color=0x3498db,
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.add_field(name="Hashrate", value=f"{hr:.2f} MH/s", inline=False)
+    embed.set_footer(text="Hashrate-Details abgerufen.")
+    await ctx.send(embed=embed)
 
 @bot.command(help="Zeigt die aktuelle Temperatur und VRM-Temperatur")
 async def temp(ctx):
@@ -354,9 +327,18 @@ async def temp(ctx):
     if not data:
         await ctx.send("❌ Fehler: Keine gültige Antwort von der Bitaxe API.")
         return
+
     temp = data.get("temp", "N/A")
     vr_temp = data.get("vrTemp", "N/A")
-    await ctx.send(f"🌡️ Temperatur: {temp}°C | VRM: {vr_temp}°C")
+    embed = discord.Embed(
+        title="🌡️ Temperatur Übersicht",
+        color=0x3498db,
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.add_field(name="Temperatur", value=f"{temp}°C", inline=True)
+    embed.add_field(name="VRM-Temperatur", value=f"{vr_temp}°C", inline=True)
+    embed.set_footer(text="Temperatur-Details abgerufen.")
+    await ctx.send(embed=embed)
 
 @bot.command(help="Zeigt die aktuelle Uptime des Miners")
 async def uptime(ctx):
@@ -364,9 +346,17 @@ async def uptime(ctx):
     if not data:
         await ctx.send("❌ Fehler: Keine gültige Antwort von der Bitaxe API.")
         return
+
     uptime_sec = int(data.get("uptimeSeconds", 0))
     uptime_str = str(datetime.timedelta(seconds=uptime_sec))
-    await ctx.send(f"⏱️ Uptime: {uptime_str}")
+    embed = discord.Embed(
+        title="⏱️ Uptime Übersicht",
+        color=0x3498db,
+        timestamp=datetime.datetime.utcnow()
+    )
+    embed.add_field(name="Uptime", value=uptime_str, inline=False)
+    embed.set_footer(text="Uptime-Daten abgerufen.")
+    await ctx.send(embed=embed)
 
 @bot.command(help="Zeigt das Chipmodell, die Frequenz und die Chip Voltage (2 Nachkommastellen, Aktuell/Soll)")
 async def chip(ctx):
@@ -377,16 +367,9 @@ async def chip(ctx):
 
     model = data.get("ASICModel", "N/A")
     freq = data.get("frequency", "N/A")
-    
-    try:
-        # Umwandlung der Spannungswerte von mV in V
-        voltage_actual = float(data.get("coreVoltageActual", "0")) / 1000.0
-        voltage_set = float(data.get("coreVoltage", "0")) / 1000.0
-        voltage_str = f"Aktuell: {voltage_actual:.2f}v | Soll: {voltage_set:.2f}v"
-    except Exception:
-        voltage_str = f"{data.get('coreVoltageActual', 'N/A')}/{data.get('coreVoltage', 'N/A')}v"
-    
-    # Erstelle ein Embed im gleichen Stil wie die anderen Befehle
+    voltage_actual = float(data.get("coreVoltageActual", "0")) / 1000.0
+    voltage_set = float(data.get("coreVoltage", "0")) / 1000.0
+
     embed = discord.Embed(
         title="🔎 Chip-Informationen",
         color=0x3498db,
@@ -394,13 +377,9 @@ async def chip(ctx):
     )
     embed.add_field(name="Modell", value=model, inline=True)
     embed.add_field(name="Frequenz", value=f"{freq} MHz", inline=True)
-    embed.add_field(name="Spannung", value=voltage_str, inline=False)
-    
-    # Thumbnail hinzufügen – Ersetze den Link durch ein passendes Discord-Icon, falls gewünscht.
-    embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/810040487168608808.png")
-    
+    embed.add_field(name="Spannung", value=f"Aktuell: {voltage_actual:.2f} V | Soll: {voltage_set:.2f} V", inline=False)
+    embed.set_footer(text="Chip-Daten abgerufen.")
     await ctx.send(embed=embed)
-
 
 @bot.command(help="Zeigt Stromverbrauch, Spannung und Stromstärke sowie minPower und maxPower")
 async def power(ctx):
@@ -409,47 +388,19 @@ async def power(ctx):
         await ctx.send("❌ Fehler: Keine gültige Antwort von der Bitaxe API.")
         return
 
-    # Leistung auslesen und formatieren
-    raw_power = data.get("power", "N/A")
-    raw_min_power = data.get("minPower", "N/A")
-    raw_max_power = data.get("maxPower", "N/A")
-    
-    try:
-        power_val = float(raw_power)
-        min_power_val = float(raw_min_power)
-        max_power_val = float(raw_max_power)
-        power_str = f"{power_val:.2f} W ({min_power_val:.2f} - {max_power_val:.2f} W)"
-    except Exception:
-        power_str = f"{raw_power} W"
+    power = data.get("power", "N/A")
+    voltage = float(data.get("voltage", "0")) / 1000.0
+    current = float(data.get("current", "0")) / 1000.0
 
-    # Spannung umrechnen: Aus mV in V
-    raw_voltage = data.get("voltage", "N/A")
-    try:
-        voltage_val = float(raw_voltage) / 1000.0
-        voltage_str = f"{voltage_val:.2f} V"
-    except Exception:
-        voltage_str = raw_voltage
-
-    # Strom umrechnen: Aus mA in A
-    raw_current = data.get("current", "N/A")
-    try:
-        current_val = float(raw_current) / 1000.0
-        current_str = f"{current_val:.2f} A"
-    except Exception:
-        current_str = raw_current
-
-    # Erstelle ein Embed im gleichen Stil wie beim !chip-Command
     embed = discord.Embed(
         title="🔌 Power-Informationen",
         color=0x3498db,
         timestamp=datetime.datetime.utcnow()
     )
-    embed.add_field(name="Leistung", value=power_str, inline=False)
-    embed.add_field(name="Spannung", value=voltage_str, inline=True)
-    embed.add_field(name="Strom", value=current_str, inline=True)
-    # Thumbnail: Hier wird ein Discord-eigenes Icon verwendet, ggf. anpassen
-    embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/810040489041684746.png")
-    
+    embed.add_field(name="Leistung", value=f"{power:.2f} W", inline=True)
+    embed.add_field(name="Spannung", value=f"{voltage:.2f} V", inline=True)
+    embed.add_field(name="Stromstärke", value=f"{current:.2f} A", inline=True)
+    embed.set_footer(text="Power-Daten abgerufen.")
     await ctx.send(embed=embed)
 
 @bot.command(help="Zeigt Lüftergeschwindigkeit, RPM und Auto-Fan-Status")
@@ -565,7 +516,7 @@ async def stratum(ctx):
     )
     await ctx.send(message)
 
-@bot.command(help="Zeigt den aktuellen besten Difficulty-Wert, den Session-Bestwert und eine Historie der Best Difficulties (höchste zuerst)")
+@bot.command(help="Zeigt die höchste jemals erreichte Difficulty, den aktuellen Session-Bestwert und eine Historie der Best Difficulties.")
 async def best(ctx):
     data = fetch_bitaxe_data()
     if not data:
@@ -573,9 +524,9 @@ async def best(ctx):
         return
 
     best_diff = data.get("bestDiff", "N/A")
-    session = data.get("bestSessionDiff", "N/A")
-    
-    # Historie laden (aus der Datei best_difficulty_history.json)
+    session_best = data.get("bestSessionDiff", "N/A")
+
+    # Historie laden
     history = load_history()
 
     def parse_value(raw):
@@ -597,55 +548,60 @@ async def best(ctx):
             return None
 
     numeric_best = parse_value(best_diff)
-    # Neuen Historieneintrag anfügen, wenn ein gültiger Best-Wert vorliegt und sich
-    # der Wert vom letzten gespeicherten unterscheidet.
-    if best_diff != "N/A" and numeric_best is not None:
-        if not history or (history and history[-1].get("best") != numeric_best):
-            record = {
-                "timestamp": datetime.datetime.now().isoformat(),
-                "best": numeric_best
-            }
-            history.append(record)
-            save_history(history)
+    numeric_session_best = parse_value(session_best)
 
+    # Höchste jemals erreichte Difficulty berechnen
+    highest_all_time = max([rec.get("best", 0) for rec in history] + [numeric_best or 0])
+
+    # Historie formatieren
     def format_number(num):
         """
-        Gibt den vollständigen (ausgeschriebenen) Wert sowie eine abgekürzte Version zurück.
+        Gibt den vollständigen Wert sowie die gekürzte Version zurück.
         Beispiel: 1234567 -> "1,234,567" und "1.23M"
         """
         full = f"{num:,.0f}"
         if num >= 1e6:
-            abbr = f"{num/1e6:.2f}M"
+            abbr = f"{num / 1e6:.2f}M"
         elif num >= 1e3:
-            abbr = f"{num/1e3:.2f}K"
+            abbr = f"{num / 1e3:.2f}K"
         else:
             abbr = f"{num:.2f}"
         return full, abbr
 
-    # Sortiere die Historie nach dem Bestwert (höchste Werte zuerst)
-    sorted_history = sorted(history, key=lambda rec: rec.get("best", 0), reverse=True)
+    full_highest, abbr_highest = format_number(highest_all_time)
+    full_session, abbr_session = format_number(numeric_session_best or 0)
+    full_best, abbr_best = format_number(numeric_best or 0)
 
-    history_msg_lines = []
-    for rec in sorted_history:
+    sorted_history = sorted(history, key=lambda rec: rec.get("best", 0), reverse=True)
+    history_lines = []
+    for rec in sorted_history[:10]:  # Zeige die letzten 10 Einträge
         ts = rec.get("timestamp", "Unbekannt")
         try:
             ts_formatted = datetime.datetime.fromisoformat(ts).strftime("%Y-%m-%d %H:%M:%S")
         except Exception:
             ts_formatted = ts
-        best_val = rec.get("best")
-        if isinstance(best_val, (int, float)):
-            full_val, abbr_val = format_number(best_val)
-            history_line = f"{ts_formatted} - {full_val} ({abbr_val})"
-        else:
-            history_line = f"{ts_formatted} - N/A"
-        history_msg_lines.append(history_line)
-    history_msg = "\n".join(history_msg_lines)
+        best_val = rec.get("best", "N/A")
+        full_val, abbr_val = format_number(best_val) if isinstance(best_val, (int, float)) else ("N/A", "N/A")
+        history_lines.append(f"{ts_formatted} - {full_val} ({abbr_val})")
 
-    msg = (
-        f"🏆 Beste Difficulty: {best_diff} (Session: {session})\n\n"
-        f"📜 Historie der Best Difficulties (höchste zuerst):\n{history_msg}"
+    # Embed erstellen
+    embed = discord.Embed(
+        title="🏆 Best Difficulty Übersicht",
+        color=0x3498db,
+        timestamp=datetime.datetime.utcnow()
     )
-    await ctx.send(msg)
+    embed.add_field(name="Höchste jemals erreichte Difficulty", value=f"{full_highest} ({abbr_highest})", inline=False)
+    embed.add_field(name="Session Best", value=f"{full_session} ({abbr_session})", inline=True)
+    embed.add_field(name="Aktuelle Best Difficulty", value=f"{full_best} ({abbr_best})", inline=True)
+    embed.add_field(name="Historie (letzte 10)", value="\n".join(history_lines) or "Keine Daten verfügbar", inline=False)
+
+    # Optional Thumbnail hinzufügen
+    embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/810040487168608808.png")
+
+    # Footer mit Hinweis
+    embed.set_footer(text="Best Difficulty Übersicht – Daten werden regelmäßig aktualisiert.")
+    
+    await ctx.send(embed=embed)
 
 @bot.command(help="Zeigt eine kompakte Zusammenfassung wichtiger Werte")
 async def info(ctx):
@@ -758,27 +714,39 @@ async def log_to_console():
         await asyncio.sleep(int(config['settings'].get('console_interval_sec', 30)))
 
 async def monitor_changes():
-    # Starte den Konsolen-Logging-Task (der im Hintergrund läuft)
+    # Starte den Konsolen-Logging-Task (läuft im Hintergrund)
     bot.loop.create_task(log_to_console())
     
-    # Hier folgt der Monitoring-Teil, der z. B. auf Änderungen reagiert und Nachrichten an Discord sendet.
-    last_best = None
+    await bot.wait_until_ready()
+    channel = bot.get_channel(channel_id)
+    last_best = None  # Best Difficulty wird hier initialisiert
+    fallback_announced = False
+    unreachable_announced = False
+    hashrate_zero_announced = False
+
     while True:
         data = fetch_bitaxe_data()
         if data:
-            best = data.get("bestDiff", "N/A")
-            # Beispiel: Prüfe, ob sich der Best-Diff-Wert geändert hat
-            if last_best is None:
-                last_best = best
-            elif best != last_best:
-                channel = bot.get_channel(channel_id)
-                await channel.send(f"🎉 **Neue Best Difficulty erreicht:** {best}")
-                last_best = best
-        else:
-            # Hier könntest du ebenfalls Nachrichten senden, wenn z. B. keine Verbindung besteht
-            pass
+            best = data.get("bestDiff")
 
-        # Warte 60 Sekunden, bevor du das nächste Mal prüfst
+            # Melde nur eine neue Best Difficulty, wenn eine Veränderung nach dem Start erkannt wird
+            if last_best is not None and best != last_best:
+                await channel.send(f"🎉 **Neue Best Difficulty erreicht:** {best}")
+            last_best = best  # Aktualisiere die Best Difficulty, ohne beim ersten Mal eine Nachricht zu senden
+
+            # Fallback-Stratum Warnungen
+            fallback = data.get("isUsingFallbackStratum", False)
+            if fallback and not fallback_announced:
+                await channel.send("⚠️ **Achtung:** Der Miner verwendet derzeit den Fallback-Stratum!")
+                fallback_announced = True
+            if not fallback:
+                fallback_announced = False
+        else:
+            # Warnung bei nicht erreichbarer API
+            if not unreachable_announced:
+                await channel.send("🚫 **Bitaxe API nicht erreichbar!** Bitte Verbindung prüfen.")
+                unreachable_announced = True
+
         await asyncio.sleep(60)
 
 
