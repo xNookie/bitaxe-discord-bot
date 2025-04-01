@@ -75,10 +75,10 @@ python bitaxediscordbot.py
 
 ## 📊 Beispiel: Live Dashboard
 
-![Beispiel Embed](dashboard.png)
+![Beispiel Embed](/screenshots/dashboard.png)
 
 ## 📊 Beispiel: verfügbare Befehle
-![Befehlsübersicht](screenshot.png)
+![Befehlsübersicht](/screenshots/commands.png)
 
 ---
 
