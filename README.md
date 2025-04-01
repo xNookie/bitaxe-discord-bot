@@ -7,15 +7,31 @@ Perfekt für dein Mining-Homelab oder NerdAxe-Setup!
 
 ## 🚀 Features
 
-- 🟢 **Live-Dashboard** mit kontinuierlicher Aktualisierung (Embed)
-- 🔄 **Automatische Benachrichtigungen**:
-  - Neue Best Difficulty erreicht
-  - Wechsel auf Fallback-Stratum
-  - API nicht erreichbar
-  - Hashrate unter kritischen Schwellen
-- 🖥 **Farbliche Konsolenausgabe** mit Echtzeitdaten
-- 📈 **Historie der Best Difficulties** (inkl. JSON-Logging)
-- 📋 **Kommandos für alle Systemdaten** – direkt in Discord
+### 🔧 Allgemein
+- Vollständig asynchroner Discord-Bot mit `discord.py`
+- Konfigurierbar über `config.ini`
+- Automatischer Start, Hilfe-Kommandos und Konsolen-Logging
+- Integration mit der BitAxe-API inklusive Fehlerbehandlung
+- Unterstützung für Zeitzonen via `zoneinfo`
+
+### 📊 Dashboard & Statusanzeigen
+- `!dashboard`: Live-Dashboard mit kontinuierlicher Aktualisierung
+- Übersichtliche Darstellung mit Icons und Emojis
+- Hervorhebung bei neuer Best Difficulty (`✨🏆`)
+- Automatisches Anpinnen im Dashboard-Channel
+- Konfigurierbares Update-Intervall
+
+### 🧠 Intelligente Benachrichtigungen
+- Neue Best Difficulty (`🎉`)
+- Nutzung des Fallback-Stratum (`⚠️`)
+- API nicht erreichbar (`🚫`)
+- Niedrige Hashrate < 350 MH/s (`⚠️`)
+- Entwarnung bei Hashrate > 400 MH/s (`✅`)
+
+### 📝 Historie & Analyse
+- `!best`: Übersicht über höchste, aktuelle und Session-Best Difficulty
+- Speicherung der Historie in JSON-Datei
+- Automatisches Parsen und Formatieren von M/K-Suffixen
 
 ---
 
