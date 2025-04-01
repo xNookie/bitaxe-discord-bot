@@ -103,13 +103,3 @@ python bitaxediscordbot.py
 - Entwickelt für NerdAxe/Bitaxe Miner
 - Open Source – feel free to contribute!
 
----
-
-## 🛡 Sicherheitshinweis
-
-⚠️ **Lege `config.ini` niemals öffentlich ins GitHub-Repo!**  
-Der Bot-Token gibt vollständigen Zugriff auf deinen Bot!
-
----
-
-Viel Spaß mit deinem BitAxeBot! 🥳
