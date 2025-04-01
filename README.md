@@ -77,6 +77,8 @@ python bitaxediscordbot.py
 
 ![Beispiel Embed](dashboard.png)
 
+![Befehlsübersicht](screenshot.png)
+
 ---
 
 ## 🧠 Infos
