@@ -1,0 +1,5 @@
+discord.py>=2.3.0
+requests>=2.31.0
+matplotlib>=3.8.0
+colorama>=0.4.6
+tzdata>=2023.3  # Optional, nur wenn ZoneInfo nicht verfügbar ist

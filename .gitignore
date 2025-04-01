@@ -1,0 +1,9 @@
+# Sensible Dateien
+config.ini
+*.json  # z. B. best_difficulty_history.json
+
+# Python-Umgebungen & Cache
+__pycache__/
+*.pyc
+.env/
+.venv/
